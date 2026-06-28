@@ -7,6 +7,7 @@ import requests
 import json
 from sentence_transformers import SentenceTransformer
 
+
 # ─────────────────────────────────────────
 # CONFIG
 # ─────────────────────────────────────────
