@@ -6,14 +6,16 @@ import os
 import requests
 import json
 from sentence_transformers import SentenceTransformer
+from dotenv import load_dotenv
 
+load_dotenv()
 
 # ─────────────────────────────────────────
 # CONFIG
 # ─────────────────────────────────────────
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
-# GROQ_MODEL   = "llama3-8b-8192"
 GROQ_MODEL   = "llama-3.1-8b-instant"
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 CHUNK_SIZE   = 400
 CHUNK_OVERLAP = 80
 TOP_K        = 3
@@ -62,7 +64,7 @@ def retrieve_chunks(query, chunks, index, model, top_k=TOP_K):
     return [chunks[i] for i in indices[0] if i < len(chunks)]
 
 
-def ask_groq(api_key, context, question, history):
+def ask_groq(context, question, history):
     context = context[:2500]
 
     system_prompt = (
@@ -77,7 +79,7 @@ def ask_groq(api_key, context, question, history):
     messages.append({"role": "user", "content": question})
 
     headers = {
-        "Authorization": f"Bearer {api_key.strip()}",
+        "Authorization": f"Bearer {GROQ_API_KEY.strip()}",
         "Content-Type": "application/json"
     }
     payload = {
@@ -116,20 +118,18 @@ for key, default in {
 # SIDEBAR
 # ─────────────────────────────────────────
 with st.sidebar:
-    st.title("Setup")
-    st.markdown("**Step 1 — Groq API Key**")
-    st.markdown("Get free key → [console.groq.com](https://console.groq.com)")
-    api_key = st.text_input("Paste Groq API Key", type="password", placeholder="gsk_...")
+    st.title("📄 PDF RAG Chatbot")
+    st.markdown("Upload your PDFs and start chatting!")
 
     st.markdown("---")
-    st.markdown("**Step 2 — Upload PDFs**")
+    st.markdown("**Upload PDFs**")
     uploaded_files = st.file_uploader("Upload PDFs", type="pdf", accept_multiple_files=True)
 
     process_btn = st.button("Process PDFs", use_container_width=True, type="primary")
 
     if process_btn:
-        if not api_key:
-            st.error("Enter your Groq API key first!")
+        if not GROQ_API_KEY:
+            st.error("API key not found! Check your .env file.")
         elif not uploaded_files:
             st.error("Upload at least one PDF!")
         else:
@@ -157,7 +157,7 @@ with st.sidebar:
             st.rerun()
 
     st.markdown("---")
-    st.caption("Model: llama3-8b (Groq) | Embeddings: MiniLM-L6 | VectorDB: FAISS")
+    st.caption("Model: llama-3.1-8b (Groq) | Embeddings: MiniLM-L6 | VectorDB: FAISS")
 
 
 # ─────────────────────────────────────────
@@ -189,7 +189,7 @@ else:
                         model
                     )
                     context = "\n\n---\n\n".join(relevant)
-                    answer = ask_groq(api_key, context, user_input, st.session_state.chat_history)
+                    answer = ask_groq(context, user_input, st.session_state.chat_history)
                     st.write(answer)
                     st.session_state.chat_history.append({"role": "user", "content": user_input})
                     st.session_state.chat_history.append({"role": "assistant", "content": answer})
