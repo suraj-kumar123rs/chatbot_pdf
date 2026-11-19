@@ -1,0 +1,143 @@
+[
+  {
+    "question": "Which seq2seq model generates the answers, and how big is it?",
+    "evidence": "with 400M parameters",
+    "answer_keywords": [
+      "BART",
+      "400M"
+    ]
+  },
+  {
+    "question": "What is used to initialize the retriever?",
+    "evidence": "bi-encoder from DPR",
+    "answer_keywords": [
+      "DPR"
+    ]
+  },
+  {
+    "question": "Which Wikipedia snapshot is used as the knowledge source?",
+    "evidence": "December 2018 dump",
+    "answer_keywords": [
+      "2018"
+    ]
+  },
+  {
+    "question": "Into what size pieces are Wikipedia articles split?",
+    "evidence": "disjoint 100-word chunks",
+    "answer_keywords": [
+      "100"
+    ]
+  },
+  {
+    "question": "How many passages are in the retrieval corpus?",
+    "evidence": "a total of 21M documents",
+    "answer_keywords": [
+      "21"
+    ]
+  },
+  {
+    "question": "Which library is used to build the search index?",
+    "evidence": "MIPS index using FAISS",
+    "answer_keywords": [
+      "FAISS"
+    ]
+  },
+  {
+    "question": "What approximation makes retrieval faster?",
+    "evidence": "Hierarchical Navigable Small World",
+    "answer_keywords": [
+      "small world"
+    ]
+  },
+  {
+    "question": "What exact match score does RAG-Sequence get on Natural Questions?",
+    "evidence": "44.5 56.8",
+    "answer_keywords": [
+      "44.5"
+    ]
+  },
+  {
+    "question": "What exact match score does RAG-Token get on WebQuestions?",
+    "evidence": "45.5 50.0",
+    "answer_keywords": [
+      "45.5"
+    ]
+  },
+  {
+    "question": "How close is RAG to state-of-the-art on 3-way FEVER classification?",
+    "evidence": "within 4.3% of state-of-the-art",
+    "answer_keywords": [
+      "4.3"
+    ]
+  },
+  {
+    "question": "By how much does RAG-Sequence beat BART on MS-MARCO?",
+    "evidence": "by 2.6 Bleu points",
+    "answer_keywords": [
+      "2.6"
+    ]
+  },
+  {
+    "question": "Which metric is used to evaluate Jeopardy question generation?",
+    "evidence": "SQuAD-tuned Q-BLEU-1",
+    "answer_keywords": [
+      "Q-BLEU"
+    ]
+  },
+  {
+    "question": "Which older Wikipedia dump was used in the index swapping test?",
+    "evidence": "Wikipedia dump from December 2016",
+    "answer_keywords": [
+      "2016"
+    ]
+  },
+  {
+    "question": "How many world leaders were in the index swap test list?",
+    "evidence": "82 world leaders",
+    "answer_keywords": [
+      "82"
+    ]
+  },
+  {
+    "question": "How accurate was the model on 2016 leaders using the 2016 index?",
+    "evidence": "70% correctly using the 2016 index",
+    "answer_keywords": [
+      "70"
+    ]
+  },
+  {
+    "question": "What GPUs were used for training?",
+    "evidence": "32GB NVIDIA V100 GPUs",
+    "answer_keywords": [
+      "V100"
+    ]
+  },
+  {
+    "question": "Which encoder is updated during training and which stays frozen?",
+    "evidence": "keep the document encoder",
+    "answer_keywords": [
+      "query encoder"
+    ]
+  },
+  {
+    "question": "How many documents are retrieved at test time for RAG-Token?",
+    "evidence": "using 15 retrieved documents",
+    "answer_keywords": [
+      "15"
+    ]
+  },
+  {
+    "question": "In human evaluation, how often was BART judged more factual than RAG?",
+    "evidence": "more factual than RAG in only 7.1%",
+    "answer_keywords": [
+      "7.1"
+    ]
+  },
+  {
+    "question": "What is the cheaper decoding method for RAG-Sequence called?",
+    "evidence": "Fast Decoding",
+    "answer_keywords": [
+      "Fast Decoding"
+    ]
+  }
+]
