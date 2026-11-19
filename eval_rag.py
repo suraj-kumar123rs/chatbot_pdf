@@ -10,7 +10,8 @@ Measures:
 
 Pipeline mirrors app.py exactly: PyMuPDF -> fixed-size char chunks (400 / 80
 overlap, chunks <= 50 chars dropped) -> all-MiniLM-L6-v2 -> FAISS IndexFlatL2
--> top-3 chunks -> Groq llama-3.1-8b-instant via the same REST call and prompt.
+-> top-3 chunks -> Groq openai/gpt-oss-20b via the same REST call and prompt.
+Use --hybrid to evaluate the FAISS + BM25 retrieval (reciprocal rank fusion) used in app.py.
 
 Developer: Suraj Kumar (surajkumar805122@gmail.com)
 
@@ -38,7 +39,7 @@ from sentence_transformers import SentenceTransformer
 # ---- Defaults copied from app.py ----
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 EMBED_MODEL = "all-MiniLM-L6-v2"
-LLM_MODEL = "llama-3.1-8b-instant"
+LLM_MODEL = "openai/gpt-oss-20b"
 CHUNK_SIZE = 400
 CHUNK_OVERLAP = 80
 TOP_K = 3
@@ -90,6 +91,22 @@ def retrieve(question: str, model, index, k: int):
     return [int(i) for i in idx[0] if i != -1]
 
 
+def tokenize(text: str) -> list:
+    return re.findall(r"[a-z0-9]+", text.lower())
+
+
+def retrieve_hybrid(question, model, index, bm25, n_chunks, k, pool=20, rrf_k=60):
+    """Dense + BM25, merged with reciprocal rank fusion (same as app.py)."""
+    pool = min(pool, n_chunks)
+    dense_ids = retrieve(question, model, index, pool)
+    sparse_ids = [int(i) for i in np.argsort(bm25.get_scores(tokenize(question)))[::-1][:pool]]
+    scores = {}
+    for ranked in (dense_ids, sparse_ids):
+        for rank, cid in enumerate(ranked):
+            scores[cid] = scores.get(cid, 0) + 1 / (rrf_k + rank + 1)
+    return sorted(scores, key=scores.get, reverse=True)[:k]
+
+
 def first_hit_rank(retrieved_ids, chunks, evidence: str):
     """1-based rank of the first chunk containing the evidence phrase, else None."""
     ev = normalize(evidence)
@@ -109,6 +126,7 @@ def ask_llm(api_key: str, question: str, context: str):
         ],
         "temperature": TEMPERATURE,
         "max_tokens": MAX_TOKENS,
+        "reasoning_effort": "low",
     }
     headers = {"Authorization": f"Bearer {api_key.strip()}", "Content-Type": "application/json"}
     t0 = time.perf_counter()
@@ -144,6 +162,7 @@ def main():
     ap.add_argument("--overlap", type=int, default=CHUNK_OVERLAP)
     ap.add_argument("--top-k", type=int, default=TOP_K, help="chunks sent to the LLM")
     ap.add_argument("--no-llm", action="store_true", help="only evaluate retrieval")
+    ap.add_argument("--hybrid", action="store_true", help="FAISS + BM25 hybrid retrieval")
     ap.add_argument("--out", default="results")
     args = ap.parse_args()
 
@@ -161,6 +180,11 @@ def main():
     index = build_index(chunks, model)
     index_time = time.perf_counter() - t0
 
+    bm25 = None
+    if args.hybrid:
+        from rank_bm25 import BM25Okapi
+        bm25 = BM25Okapi([tokenize(c) for c in chunks])
+
     # Warm-up so the first query's latency isn't inflated
     retrieve("warm up", model, index, 1)
 
@@ -177,7 +201,10 @@ def main():
 
     for i, q in enumerate(questions, start=1):
         t = time.perf_counter()
-        ids = retrieve(q["question"], model, index, eval_k)
+        if bm25 is not None:
+            ids = retrieve_hybrid(q["question"], model, index, bm25, len(chunks), eval_k)
+        else:
+            ids = retrieve(q["question"], model, index, eval_k)
         ret_ms = (time.perf_counter() - t) * 1000
         ret_lat.append(ret_ms)
 
@@ -223,6 +250,7 @@ def main():
         "chunks": len(chunks),
         "chunk_size": args.chunk_size,
         "overlap": args.overlap,
+        "retrieval": "hybrid" if args.hybrid else "dense",
         "index_build_s": round(index_time, 2),
         "hit@1": round(hits[1] / n, 3),
         "hit@3": round(hits[3] / n, 3),
@@ -239,7 +267,7 @@ def main():
             "keyword_match": round(kw_hits / kw_total, 3) if kw_total else None,
         })
 
-    tag = f"c{args.chunk_size}_o{args.overlap}"
+    tag = f"c{args.chunk_size}_o{args.overlap}" + ("_hybrid" if args.hybrid else "")
     with open(out_dir / f"eval_results_{tag}.csv", "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
         writer.writeheader()
